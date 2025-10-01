@@ -5,8 +5,7 @@
 #include "header.h"
 
 constexpr size_t MEMORY_SIZE_BYTES_FOR_STRIDE = 64 * 1024 * 1024;
-constexpr int EXPERIMENT_COUNT = 10;
-
+constexpr int EXPERIMENT_COUNT = 100;
 
 double measure_time_for_stride(const std::vector<uint8_t> &array, const size_t stride = 1) {
     volatile uint8_t dummy = 0;
@@ -30,18 +29,19 @@ void clean(std::vector<T> &initial) {
 
 void cache_line_size_experiment() {
     std::cout << "Cache line size experiment" << std::endl;
+    std::cout << "Stride (Bytes)\t| Latency (ns/access)" << std::endl;
+    std::cout << "----------------------------------------------------" << std::endl;
     auto memory = std::vector<uint8_t>(MEMORY_SIZE_BYTES_FOR_STRIDE);
     std::iota(memory.begin(), memory.end(), 0);
 
-    for (int stride = 1; stride <= 1 << 9; stride *= 2) {
+    for (int stride = 1; stride <= 1 << 10; stride *= 2) {
         const auto measurements = new std::vector<double>(0);
         for (int i = 0; i < EXPERIMENT_COUNT; ++i) {
             measurements->push_back(measure_time_for_stride(memory, stride));
         }
         clean(*measurements);
-        std::cout << stride << " Bytes stride  \t| ";
-        std::cout << std::accumulate(measurements->begin(), measurements->end(), 0.) / measurements->size() <<
-                " ns/access" << std::endl;
+        std::cout << stride << "\t\t\t\t| ";
+        std::cout << std::accumulate(measurements->begin(), measurements->end(), 0.) / measurements->size() << std::endl;
         delete measurements;
     }
 }

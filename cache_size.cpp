@@ -46,17 +46,19 @@ double measure_time_for_size(const int *memory, const int size, const int warmup
 }
 
 constexpr int EXPERIMENTS_COUNT = 500;
-constexpr int MAX_MEMORY_SIZE_IN_BYTES = 256 * 1024;
+constexpr int MAX_MEMORY_SIZE_IN_BYTES = 128 * 1024;
 
 void cache_size_experiment() {
     std::cout << "Cache size experiment" << std::endl;
-    for (int size = 1024 / 4; size < MAX_MEMORY_SIZE_IN_BYTES / 4; size *= 2) {
+    std::cout << "Size (Bytes)\t| Latency (ns/access)" << std::endl;
+    std::cout << "----------------------------------------------------" << std::endl;
+    for (int size = 1024 / 4; size <= MAX_MEMORY_SIZE_IN_BYTES / 4; size *= 2) {
         double times[EXPERIMENTS_COUNT];
         for (double &time: times) {
             time = measure_time_for_size(permutation(size), size, 100);
         }
         auto [clean_time, clean_time_size] = clean(times, EXPERIMENTS_COUNT);
-        std::cout << "Memory size " << size * 4 << " Bytes  \t| " <<
-                std::accumulate(&clean_time[0], &clean_time[clean_time_size], 0.) / clean_time_size << " ns/access" << std::endl;
+        std::cout << size * 4 << "\t\t\t| " <<
+                std::accumulate(&clean_time[0], &clean_time[clean_time_size], 0.) / clean_time_size << std::endl;
     }
 }

@@ -2,3 +2,4 @@
 
 void cache_line_size_experiment();
 void cache_size_experiment();
+void cache_assoc_experiment();
