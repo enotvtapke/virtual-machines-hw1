@@ -78,7 +78,7 @@ That indicates that an array of size 32768 Bytes fits in L1 cache and an array o
 Thus, the cache size of L1 data cache is 32768 Bytes.
 
 In the cache line size experiment latency slowly grows as the stride increases, because increasing the stride increases
-the number of cache misses (the higher the stride, the fewer reads are from the same cache line). After the 64 Bytes stride  
+the number of cache misses (the higher the stride, the fewer reads are from the same cache line). After the 64 Bytes stride
 the latency stops changing, which indicates that every read with stride higher than 64 Bytes is cache miss.
 Thus, the cache line size of L1 data cache is 64 Bytes.
 
