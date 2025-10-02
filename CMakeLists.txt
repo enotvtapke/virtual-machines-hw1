@@ -10,6 +10,10 @@ add_executable(main
         cache_assoc.cpp
 )
 
+add_executable(cache_assoc_from_paper
+        cache_assoc_from_paper.cpp
+)
+
 target_compile_options(main PRIVATE
         -O2
 )
