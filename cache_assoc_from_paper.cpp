@@ -4,8 +4,9 @@
 #include <chrono>
 #include <numeric>
 #include <algorithm>
+#include <sys/mman.h>
 
-constexpr unsigned int REPEATS = 1'000'000;
+constexpr unsigned int REPEATS = 10'000'000;
 
 inline std::mt19937& get_random_engine() {
     static std::mt19937 engine(std::random_device{}());
@@ -45,7 +46,7 @@ double time(const int stride, const int spots_num) {
 
 void cache_assoc_experiment_new(const int max_memory, const int max_assoc, const int max_stride) {
     printf("%-13s", "stride\\spots");
-    for (int i = 0; i < max_assoc; ++i) {
+    for (int i = 1; i <= max_assoc; ++i) {
         printf("%-3d", i);
     }
     printf("\n");
@@ -77,9 +78,9 @@ void setup_affinity(int cpu_id) {
 }
 
 int main() {
-    setup_affinity(12);
+    setup_affinity(1);
     constexpr int max_memory = 512 * 1024 * 1024;
-    memory = new char[max_memory];
-    cache_assoc_experiment_new(max_memory, 20, 4 * 1024 * 1024);
+    memory = (char *) mmap(nullptr, max_memory, PROT_READ | PROT_WRITE,MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+    cache_assoc_experiment_new(max_memory, 30, 4 * 1024 * 1024);
     return 0;
 }
