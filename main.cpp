@@ -45,8 +45,6 @@ double time(const int stride, const int spots_num) {
     return static_cast<double>((end_time - start_time).count()) / REPEATS;
 }
 
-// constexpr double ASSOC_JUMP_THRESHOLD = 0.3;
-
 void cache_assoc_experiment(const int max_memory, const int max_assoc, const int max_stride) {
     printf("%-13s", "stride\\spots");
     for (int i = 1; i <= max_assoc; ++i) {
@@ -58,14 +56,9 @@ void cache_assoc_experiment(const int max_memory, const int max_assoc, const int
     while (h * max_assoc <= max_memory) {
         int s = 1;
         printf("%-13d", h);
-        double prev_time = -1;
         while (s <= max_assoc) {
             const auto current_time = time(h, s);
-            // if (h == max_stride & prev_time > 0 && current_time - prev_time > current_time * ASSOC_JUMP_THRESHOLD) {
-            //     std::cout << "Possible entity assoc: " << s - 1 << std::endl;
-            // }
             printf(",%.0f ", current_time * 10);
-            prev_time = current_time;
             ++s;
         }
         printf("\n");
@@ -125,21 +118,18 @@ void cache_line_size_experiment(const int max_memory, const int max_spots, const
         printf(",%-5s", "");
         print_times(times_higher_stride);
 
-        for (int lower_stride = higher_stride >> 2; lower_stride <= max_lower_stride; lower_stride += higher_stride >> 2) {
-            printf("%-13d", higher_stride + lower_stride);
-            const auto times_higher_lower_stride = time_for_stride(higher_stride + lower_stride, max_spots);
-            const auto [increases, decreases] = increases_decreases(times_higher_lower_stride, times_higher_stride);
-            const int dif = increases - decreases;
-            if (lower_stride == higher_stride >> 1) {
-                if (prev_prev_dif > max_spots * 0.1 && dif < max_spots * -0.1) {
-                    std::cout << "Possible entity line size: " << higher_stride / 2 << std::endl;
-                }
-                prev_prev_dif = prev_dif;
-                prev_dif = dif;
-            }
-            printf(",%-5d", dif);
-            print_times(times_higher_lower_stride);
+        int lower_stride = higher_stride >> 1;
+        printf("%-13d", higher_stride + lower_stride);
+        const auto times_higher_lower_stride = time_for_stride(higher_stride + lower_stride, max_spots);
+        const auto [increases, decreases] = increases_decreases(times_higher_lower_stride, times_higher_stride);
+        const int dif = increases - decreases;
+        if (prev_prev_dif > max_spots * 0.1 && dif < max_spots * -0.1) {
+            std::cout << "Possible entity line size: " << higher_stride / 2 << std::endl;
         }
+        prev_prev_dif = prev_dif;
+        prev_dif = dif;
+        printf(",%-5d", dif);
+        print_times(times_higher_lower_stride);
 
         higher_stride *= 2;
         max_lower_stride = (higher_stride >> 2) * 3;
