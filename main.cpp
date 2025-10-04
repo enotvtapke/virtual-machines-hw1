@@ -151,23 +151,6 @@ void cache_line_size_experiment(const int max_memory, const int max_spots, const
 
 constexpr double CACHE_SIZE_JUMP_THRESHOLD = 0.4;
 
-void cache_size_experiment(const int max_memory) {
-    double prev_time = -1;
-    for (int size = 16; size < max_memory / 8; size *= 2) {
-        const double current_time = time(8, size);
-        // printf("%-6d %0.f\n", size * 8, current_time * 100);
-        if (prev_time > 0 && current_time / prev_time > 1 + CACHE_SIZE_JUMP_THRESHOLD) {
-            // for (int lesser_size = 128; lesser_size < size / 2; lesser_size += 16) {
-            //     printf("%-6d %0.f\n", (size / 2 + lesser_size) * 8, time(8, size / 2 + lesser_size) * 100);
-            // }
-            std::cout << "Entity size lies in [" << size * 4 << ", " << size * 8 << ") bytes" << std::endl;
-            break;
-        }
-        prev_time = current_time;
-    }
-}
-
-
 void setup_affinity(int cpu_id) {
     cpu_set_t mask;
     CPU_ZERO(&mask);
@@ -184,8 +167,6 @@ int main() {
 
     const auto original_stdout = stdout;
 
-    cache_size_experiment(max_memory);
-
     auto file = fopen("./cache_line_size_table.csv", "w");
     stdout = file;
     cache_line_size_experiment(max_memory, 2000, 32 * 1024);
@@ -193,7 +174,7 @@ int main() {
 
     file = fopen("./cache_assoc_table.csv", "w");
     stdout = file;
-    cache_assoc_experiment(max_memory, 32, 1 * 1024 * 1024);
+    cache_assoc_experiment(max_memory, 100, 1 * 1024 * 1024);
     fclose(file);
 
     stdout = original_stdout;
