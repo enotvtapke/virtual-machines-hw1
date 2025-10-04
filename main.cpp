@@ -186,12 +186,12 @@ int main() {
 
     cache_size_experiment(max_memory);
 
-    auto file = fopen("../cache_line_size_table.csv", "w");
+    auto file = fopen("./cache_line_size_table.csv", "w");
     stdout = file;
     cache_line_size_experiment(max_memory, 2000, 32 * 1024);
     fclose(file);
 
-    file = fopen("../cache_assoc_table.csv", "w");
+    file = fopen("./cache_assoc_table.csv", "w");
     stdout = file;
     cache_assoc_experiment(max_memory, 32, 1 * 1024 * 1024);
     fclose(file);
