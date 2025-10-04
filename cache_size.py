@@ -11,10 +11,12 @@ for row in data:
     strides.append(int(stride))
     measurements = row[1:]
     algo = rpt.Pelt(model="l1", min_size=4, jump=1).fit(measurements)
-    result = algo.predict(pen=40)
+    result = algo.predict(pen=100)
     assocs = result
     result.pop()
     jumps_per_stride.append(result)
+
+print(f'Possible entities assocs: {assocs}')
 
 if __name__ == '__main__':
     for assoc in assocs:

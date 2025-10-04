@@ -151,7 +151,7 @@ void setup_affinity(int cpu_id) {
 }
 
 int main() {
-    setup_affinity(0);
+    setup_affinity(12);
     constexpr int max_memory = 512 * 1024 * 1024;
     memory = (char *) mmap(nullptr, max_memory, PROT_READ | PROT_WRITE,MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
 
