@@ -1,13 +1,14 @@
 ## Virtual machines HW 1. Cache parameters
 
-Нужно запустить main.
+Чтобы запустить код, можно использовать run.sh. Для запуска необходим cmake, python и две библиотеки для python:
+pandas и ruptures. Код может исполняться несколько десятков секунд. Если это слишком долго, можно уменьшить `REPEATS` 
+в [main.cpp](main.cpp).
 
 Пример вывода:
 ```
-Entity size lies in [32768, 65536) bytes
 Possible entity line size: 64
-Possible entity assoc: 6
-Possible entity assoc: 12
+Entity with assoc 6 has entity stride 65536 Bytes and size 393216 Bytes.
+Entity with assoc 12 has entity stride 4096 Bytes and size 49152 Bytes.
 ```
 
 Если одна из характеристик не была напечатана, программа не смогла её определить. 

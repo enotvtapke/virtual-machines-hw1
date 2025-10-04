@@ -7,7 +7,7 @@
 #include <sys/mman.h>
 #include <bits/stdc++.h>
 
-constexpr unsigned int REPEATS = 10'000;
+constexpr unsigned int REPEATS = 100'000;
 
 inline std::mt19937& get_random_engine() {
     static std::mt19937 engine(std::random_device{}());
@@ -45,7 +45,7 @@ double time(const int stride, const int spots_num) {
     return static_cast<double>((end_time - start_time).count()) / REPEATS;
 }
 
-constexpr double ASSOC_JUMP_THRESHOLD = 0.3;
+// constexpr double ASSOC_JUMP_THRESHOLD = 0.3;
 
 void cache_assoc_experiment(const int max_memory, const int max_assoc, const int max_stride) {
     printf("%-13s", "stride\\spots");
@@ -61,9 +61,9 @@ void cache_assoc_experiment(const int max_memory, const int max_assoc, const int
         double prev_time = -1;
         while (s <= max_assoc) {
             const auto current_time = time(h, s);
-            if (h == max_stride & prev_time > 0 && current_time - prev_time > current_time * ASSOC_JUMP_THRESHOLD) {
-                std::cout << "Possible entity assoc: " << s - 1 << std::endl;
-            }
+            // if (h == max_stride & prev_time > 0 && current_time - prev_time > current_time * ASSOC_JUMP_THRESHOLD) {
+            //     std::cout << "Possible entity assoc: " << s - 1 << std::endl;
+            // }
             printf(",%.0f ", current_time * 10);
             prev_time = current_time;
             ++s;
