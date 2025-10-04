@@ -7,7 +7,7 @@
 #include <sys/mman.h>
 #include <bits/stdc++.h>
 
-constexpr unsigned int REPEATS = 100'000;
+constexpr unsigned int REPEATS = 10'000;
 
 inline std::mt19937& get_random_engine() {
     static std::mt19937 engine(std::random_device{}());
@@ -45,10 +45,12 @@ double time(const int stride, const int spots_num) {
     return static_cast<double>((end_time - start_time).count()) / REPEATS;
 }
 
-void cache_assoc_experiment_new(const int max_memory, const int max_assoc, const int max_stride) {
+constexpr double ASSOC_JUMP_THRESHOLD = 0.3;
+
+void cache_assoc_experiment(const int max_memory, const int max_assoc, const int max_stride) {
     printf("%-13s", "stride\\spots");
     for (int i = 1; i <= max_assoc; ++i) {
-        printf("%-3d", i);
+        printf(",%-3d", i);
     }
     printf("\n");
 
@@ -56,9 +58,14 @@ void cache_assoc_experiment_new(const int max_memory, const int max_assoc, const
     while (h * max_assoc <= max_memory) {
         int s = 1;
         printf("%-13d", h);
+        double prev_time = -1;
         while (s <= max_assoc) {
             const auto current_time = time(h, s);
-            printf("%.0f ", current_time * 10);
+            if (h == max_stride & prev_time > 0 && current_time - prev_time > current_time * ASSOC_JUMP_THRESHOLD) {
+                std::cout << "Entity assoc: " << s - 1 << std::endl;
+            }
+            printf(",%.0f ", current_time * 10);
+            prev_time = current_time;
             ++s;
         }
         printf("\n");
@@ -109,6 +116,8 @@ void cache_line_size_experiment(const int max_memory, const int max_spots, const
 
     int higher_stride = 16;
     int max_lower_stride = (higher_stride >> 2) * 3;
+    int prev_prev_dif = 0;
+    int prev_dif = 0;
     while ((higher_stride + max_lower_stride) * max_spots <= max_memory) {
 
         printf("%-13d", higher_stride);
@@ -120,7 +129,15 @@ void cache_line_size_experiment(const int max_memory, const int max_spots, const
             printf("%-13d", higher_stride + lower_stride);
             const auto times_higher_lower_stride = time_for_stride(higher_stride + lower_stride, max_spots);
             const auto [increases, decreases] = increases_decreases(times_higher_lower_stride, times_higher_stride);
-            printf(",%-5d", increases - decreases);
+            const int dif = increases - decreases;
+            if (lower_stride == higher_stride >> 1) {
+                if (prev_prev_dif > max_spots * 0.1 && dif < max_spots * -0.1) {
+                    std::cout << "Entity line size: " << higher_stride / 2 << std::endl;
+                }
+                prev_prev_dif = prev_dif;
+                prev_dif = dif;
+            }
+            printf(",%-5d", dif);
             print_times(times_higher_lower_stride);
         }
 
@@ -132,6 +149,8 @@ void cache_line_size_experiment(const int max_memory, const int max_spots, const
     }
 }
 
+
+
 void setup_affinity(int cpu_id) {
     cpu_set_t mask;
     CPU_ZERO(&mask);
@@ -142,23 +161,21 @@ void setup_affinity(int cpu_id) {
 }
 
 int main() {
-    setup_affinity(1);
+    setup_affinity(12);
     constexpr int max_memory = 512 * 1024 * 1024;
     memory = (char *) mmap(nullptr, max_memory, PROT_READ | PROT_WRITE,MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
-    constexpr int max_spots = 3000;
 
     const auto original_stdout = stdout;
 
-    // auto file = fopen("../no_lower_stride.txt", "w");
-    auto file = fopen("../exp.csv", "w");
+    auto file = fopen("../cache_line_size_table.csv", "w");
     stdout = file;
-    cache_line_size_experiment(max_memory, max_spots, 1 * 1024 * 1024);
+    cache_line_size_experiment(max_memory, 2000, 32 * 1024);
     fclose(file);
 
-    // file = fopen("../lower_stride.txt", "w");
-    // stdout = file;
-    // cache_assoc_experiment_new_2(max_memory, max_spots, 1 * 1024 * 1024, 8);
-    // fclose(file);
+    file = fopen("../cache_assoc_table.csv", "w");
+    stdout = file;
+    cache_assoc_experiment(max_memory, 32, 1 * 1024 * 1024);
+    fclose(file);
 
     stdout = original_stdout;
     return 0;
