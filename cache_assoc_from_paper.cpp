@@ -149,6 +149,21 @@ void cache_line_size_experiment(const int max_memory, const int max_spots, const
     }
 }
 
+void cache_size_experiment(const int max_memory) {
+    double prev_time = -1;
+    for (int size = 16; size < max_memory / 8; size *= 2) {
+        const double current_time = time(8, size);
+        // printf("%-6d %0.f\n", size * 8, current_time * 100);
+        if (prev_time > 0 && current_time / prev_time > 2) {
+            // for (int lesser_size = 128; lesser_size < size / 2; lesser_size += 16) {
+            //     printf("%-6d %0.f\n", (size / 2 + lesser_size) * 8, time(8, size / 2 + lesser_size) * 100);
+            // }
+            std::cout << "Entity size lies in [" << size * 4 << ", " << size * 8 << ") bytes" << std::endl;
+            break;
+        }
+        prev_time = current_time;
+    }
+}
 
 
 void setup_affinity(int cpu_id) {
@@ -176,6 +191,8 @@ int main() {
     stdout = file;
     cache_assoc_experiment(max_memory, 32, 1 * 1024 * 1024);
     fclose(file);
+
+    cache_size_experiment(max_memory);
 
     stdout = original_stdout;
     return 0;
