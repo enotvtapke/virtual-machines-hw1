@@ -73,9 +73,15 @@ std::vector<double> time_for_stride(const int stride, const int spots_num) {
     std::vector<double> times(spots_num);
     for (int spots = 0; spots < spots_num; ++spots) {
         times[spots] = time(stride, spots + 1);
-        printf("%.0f ", times[spots] * 10);
     }
     return times;
+}
+
+void print_times(const std::vector<double> &times) {
+    for (const double time: times) {
+        printf(",%.0f ", time * 10);
+    }
+    printf("\n");
 }
 
 constexpr double CHANGE_THRESHOLD = 0.2;
@@ -94,27 +100,33 @@ std::pair<int, int> increases_decreases(const std::vector<double> &times1, const
     return std::make_pair(increases, decreases);
 }
 
-void cache_assoc_experiment_new_2(const int max_memory, const int max_spots, const int max_stride, const int lower_stride_init) {
-    printf("%-13s", "stride\\spots");
+void cache_line_size_experiment(const int max_memory, const int max_spots, const int max_stride) {
+    printf("%-13s,%-5s", "stride\\spots", "inc");
     for (int i = 1; i <= max_spots; ++i) {
-        printf("%-3d", i);
+        printf(",%-3d", i);
     }
     printf("\n");
 
     int higher_stride = 16;
-    int lower_stride = lower_stride_init;
-    while ((higher_stride + lower_stride) * max_spots <= max_memory) {
+    int max_lower_stride = (higher_stride >> 2) * 3;
+    while ((higher_stride + max_lower_stride) * max_spots <= max_memory) {
+
         printf("%-13d", higher_stride);
         const auto times_higher_stride = time_for_stride(higher_stride, max_spots);
-        printf("\n");
-        printf("%-13d", higher_stride + lower_stride);
-        const auto times_higher_lower_stride = time_for_stride(higher_stride + lower_stride, max_spots);
-        printf("\n");
-        const auto [increases, decreases] = increases_decreases(times_higher_lower_stride, times_higher_stride);
-        printf("<> %d\n", increases - decreases);
+        printf(",%-5s", "");
+        print_times(times_higher_stride);
+
+        for (int lower_stride = higher_stride >> 2; lower_stride <= max_lower_stride; lower_stride += higher_stride >> 2) {
+            printf("%-13d", higher_stride + lower_stride);
+            const auto times_higher_lower_stride = time_for_stride(higher_stride + lower_stride, max_spots);
+            const auto [increases, decreases] = increases_decreases(times_higher_lower_stride, times_higher_stride);
+            printf(",%-5d", increases - decreases);
+            print_times(times_higher_lower_stride);
+        }
+
         higher_stride *= 2;
-        lower_stride *= 2;
-        if (higher_stride + lower_stride > max_stride) {
+        max_lower_stride = (higher_stride >> 2) * 3;
+        if (higher_stride + max_lower_stride > max_stride) {
             break;
         }
     }
@@ -138,9 +150,9 @@ int main() {
     const auto original_stdout = stdout;
 
     // auto file = fopen("../no_lower_stride.txt", "w");
-    auto file = fopen("../exp.txt", "w");
+    auto file = fopen("../exp.csv", "w");
     stdout = file;
-    cache_assoc_experiment_new_2(max_memory, max_spots, 1 * 1024 * 1024, 8);
+    cache_line_size_experiment(max_memory, max_spots, 1 * 1024 * 1024);
     fclose(file);
 
     // file = fopen("../lower_stride.txt", "w");
