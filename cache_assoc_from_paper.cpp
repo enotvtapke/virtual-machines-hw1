@@ -62,7 +62,7 @@ void cache_assoc_experiment(const int max_memory, const int max_assoc, const int
         while (s <= max_assoc) {
             const auto current_time = time(h, s);
             if (h == max_stride & prev_time > 0 && current_time - prev_time > current_time * ASSOC_JUMP_THRESHOLD) {
-                std::cout << "Entity assoc: " << s - 1 << std::endl;
+                std::cout << "Possible entity assoc: " << s - 1 << std::endl;
             }
             printf(",%.0f ", current_time * 10);
             prev_time = current_time;
@@ -91,16 +91,16 @@ void print_times(const std::vector<double> &times) {
     printf("\n");
 }
 
-constexpr double CHANGE_THRESHOLD = 0.2;
+constexpr double LOWER_STRIDE_TIME_CHANGE_THRESHOLD = 0.2;
 
 std::pair<int, int> increases_decreases(const std::vector<double> &times1, const std::vector<double> &times2) {
     assert(times1.size() == times2.size());
     int increases = 0;
     int decreases = 0;
     for (int i = 0; i < times1.size(); ++i) {
-        if (times1[i] - times2[i] > times1[i] * CHANGE_THRESHOLD) {
+        if (times1[i] - times2[i] > times1[i] * LOWER_STRIDE_TIME_CHANGE_THRESHOLD) {
             ++increases;
-        } else if (times2[i] - times1[i] > times2[i] * CHANGE_THRESHOLD) {
+        } else if (times2[i] - times1[i] > times2[i] * LOWER_STRIDE_TIME_CHANGE_THRESHOLD) {
             ++decreases;
         }
     }
@@ -132,7 +132,7 @@ void cache_line_size_experiment(const int max_memory, const int max_spots, const
             const int dif = increases - decreases;
             if (lower_stride == higher_stride >> 1) {
                 if (prev_prev_dif > max_spots * 0.1 && dif < max_spots * -0.1) {
-                    std::cout << "Entity line size: " << higher_stride / 2 << std::endl;
+                    std::cout << "Possible entity line size: " << higher_stride / 2 << std::endl;
                 }
                 prev_prev_dif = prev_dif;
                 prev_dif = dif;
@@ -149,12 +149,14 @@ void cache_line_size_experiment(const int max_memory, const int max_spots, const
     }
 }
 
+constexpr double CACHE_SIZE_JUMP_THRESHOLD = 0.4;
+
 void cache_size_experiment(const int max_memory) {
     double prev_time = -1;
     for (int size = 16; size < max_memory / 8; size *= 2) {
         const double current_time = time(8, size);
         // printf("%-6d %0.f\n", size * 8, current_time * 100);
-        if (prev_time > 0 && current_time / prev_time > 2) {
+        if (prev_time > 0 && current_time / prev_time > 1 + CACHE_SIZE_JUMP_THRESHOLD) {
             // for (int lesser_size = 128; lesser_size < size / 2; lesser_size += 16) {
             //     printf("%-6d %0.f\n", (size / 2 + lesser_size) * 8, time(8, size / 2 + lesser_size) * 100);
             // }
@@ -182,6 +184,8 @@ int main() {
 
     const auto original_stdout = stdout;
 
+    cache_size_experiment(max_memory);
+
     auto file = fopen("../cache_line_size_table.csv", "w");
     stdout = file;
     cache_line_size_experiment(max_memory, 2000, 32 * 1024);
@@ -191,8 +195,6 @@ int main() {
     stdout = file;
     cache_assoc_experiment(max_memory, 32, 1 * 1024 * 1024);
     fclose(file);
-
-    cache_size_experiment(max_memory);
 
     stdout = original_stdout;
     return 0;
