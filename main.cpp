@@ -7,6 +7,8 @@
 #include <sys/mman.h>
 #include <bits/stdc++.h>
 
+#include "header.h"
+
 constexpr unsigned int REPEATS = 100'000;
 
 inline std::mt19937& get_random_engine() {
@@ -45,28 +47,53 @@ double time(const int stride, const int spots_num) {
     return static_cast<double>((end_time - start_time).count()) / REPEATS;
 }
 
-void cache_assoc_experiment(const int max_memory, const int max_assoc, const int max_stride) {
-    printf("%-13s", "stride\\spots");
-    for (int i = 1; i <= max_assoc; ++i) {
-        printf(",%-3d", i);
-    }
-    printf("\n");
+template <typename INDEX_T, typename DATA_T>
+struct Table {
+    std::vector<INDEX_T> index_column;
+    std::vector<std::vector<DATA_T>> data;
 
-    int h = 16;
-    while (h * max_assoc <= max_memory) {
-        int s = 1;
-        printf("%-13d", h);
-        while (s <= max_assoc) {
-            const auto current_time = time(h, s);
-            printf(",%.0f ", current_time * 10);
-            ++s;
+    [[nodiscard]] std::vector<DATA_T> row_by_index(const INDEX_T index) const {
+        for (int i = 0; i < index_column.size(); ++i) {
+            if (index_column[i] == index) {
+                return data[i];
+            }
         }
-        printf("\n");
-        h *= 2;
-        if (h > max_stride) {
+        throw std::runtime_error("Index not found");
+    }
+
+    void print(FILE * file = stdout) const {
+        for (int i =0; i < index_column.size(); ++i) {
+            fprintf(file, "%-13d", index_column[i]);
+            for (const double time: data[i]) {
+                fprintf(file, ",%-2.0f ", time * 10);
+            }
+            fprintf(file, "\n");
+        }
+    }
+};
+
+
+
+Table<int, double> cache_assoc_experiment(const int max_memory, const int max_assoc, const int max_stride) {
+    std::vector<std::vector<double>> times{};
+    std::vector<int> strides{};
+    int stride = 16;
+    while (stride * max_assoc <= max_memory) {
+        int spots_num = 1;
+        std::vector<double> times_for_stride{};
+        while (spots_num <= max_assoc) {
+            const auto current_time = time(stride, spots_num);
+            times_for_stride.push_back(current_time);
+            ++spots_num;
+        }
+        times.push_back(times_for_stride);
+        strides.push_back(stride);
+        stride *= 2;
+        if (stride > max_stride) {
             break;
         }
     }
+    return {strides, times};
 }
 
 std::vector<double> time_for_stride(const int stride, const int spots_num) {
@@ -141,7 +168,7 @@ void cache_line_size_experiment(const int max_memory, const int max_spots, const
 
 constexpr double CACHE_SIZE_JUMP_THRESHOLD = 0.4;
 
-void setup_affinity(int cpu_id) {
+void setup_affinity(const int cpu_id) {
     cpu_set_t mask;
     CPU_ZERO(&mask);
     CPU_SET(cpu_id, &mask);
@@ -150,23 +177,63 @@ void setup_affinity(int cpu_id) {
     }
 }
 
+void print_vector(const std::vector<size_t>& data) {
+    for (const auto d: data) {
+        printf("%lu ", d);
+    }
+    printf("\n");
+}
+
+// for assoc in assocs:
+//     i: int = 0
+//     for stride, jumps in reversed(list(zip(strides, jumps_per_stride))):
+//         if all(jump != assoc for jump in jumps) and any((assoc * 1.8 < jump < assoc * 2.2) for jump in jumps):
+//             print(f'Entity with assoc {assoc} has entity stride {stride * 2} Bytes and size {stride * 2 * assoc} Bytes.')
+//             break
+
+bool similar(double a, double b, double offset = 0.2) {
+    return std::max(a, b) / std::min(a, b) < 1 + offset;
+}
+
+void analyze_jumps(const Table<int, size_t>& data) {
+    const std::vector<size_t> assocs = data.data.back();
+    for (const auto assoc: assocs) {
+        for (int i = data.index_column.size() - 1; i >= 0; --i) {
+            if (std::ranges::all_of(data.data[i], [&](const size_t jump) { return jump != assoc; }) &&
+                std::ranges::any_of(data.data[i], [&](const size_t jump) { return similar(jump, assoc * 2); })) {
+                printf("Entity with assoc %lu has entity stride %d Bytes and size %lu Bytes\n",
+                       assoc, data.index_column[i] * 2, assoc * 2 * data.index_column[i]);
+                break;
+            }
+        }
+    }
+}
+
 int main() {
     setup_affinity(12);
     constexpr int max_memory = 512 * 1024 * 1024;
     memory = (char *) mmap(nullptr, max_memory, PROT_READ | PROT_WRITE,MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
 
-    const auto original_stdout = stdout;
+    // auto file = fopen("./cache_line_size_table.csv", "w");
+    // stdout = file;
+    // cache_line_size_experiment(max_memory, 2000, 32 * 1024);
+    // fclose(file);
 
-    auto file = fopen("./cache_line_size_table.csv", "w");
-    stdout = file;
-    cache_line_size_experiment(max_memory, 2000, 32 * 1024);
+    FILE *file = fopen("./cache_assoc_table.csv", "w");
+    const auto times = cache_assoc_experiment(max_memory, 100, 1 * 1024 * 1024);
+    fprintf(file, "%-13s", "stride\\spots");
+    for (int i = 1; i <= 100; ++i) {
+        fprintf(file, ",%-3d", i);
+    }
+    fprintf(file, "\n");
+    times.print(file);
     fclose(file);
-
-    file = fopen("./cache_assoc_table.csv", "w");
-    stdout = file;
-    cache_assoc_experiment(max_memory, 100, 1 * 1024 * 1024);
-    fclose(file);
-
-    stdout = original_stdout;
+    std::vector<std::vector<size_t>> jumps;
+    for (int i = 0; i < times.index_column.size(); ++i) {
+        jumps.push_back(jumpIndices(times.data[i], 4, 1.3, 0.1, 4));
+    }
+    const Table jump_table(times.index_column, jumps);
+    jump_table.print();
+    analyze_jumps(jump_table);
     return 0;
 }
