@@ -9,11 +9,6 @@ add_executable(main
         header.h
 )
 
-add_executable(anal
-        jump_analysis.cpp
-        header.h
-)
-
 target_compile_options(main PRIVATE
         -O2
 )
