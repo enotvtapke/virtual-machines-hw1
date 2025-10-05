@@ -17,6 +17,10 @@ struct JumpCandidate {
     }
 };
 
+bool similar(double a, double b, double offset) {
+    return std::max(a, b) / std::min(a, b) < 1 + offset;
+}
+
 // Helper functions (calculateMean, calculateStdDev) remain the same...
 double calculateMean(const std::vector<double>& data, size_t start, size_t end) {
     if (start >= end || end > data.size()) {
@@ -62,7 +66,7 @@ std::vector<JumpCandidate> detectJumpCandidates(const std::vector<double>& data,
         const double mean_after = calculateMean(data, after_start, i + windowSize);
         const double magnitude = std::abs(mean_after - mean_before);
 
-        if (std_dev_before < mean_before * stdDivScale && mean_after / mean_before > jumpScale) {
+        if (std_dev_before < mean_before * stdDivScale && std::max(mean_after, mean_before) / std::min(mean_after, mean_before) > jumpScale) {
             candidates.push_back({i, magnitude});
         }
     }

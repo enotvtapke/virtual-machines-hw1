@@ -5,12 +5,12 @@ set(CMAKE_CXX_STANDARD 20)
 
 add_executable(main
         main.cpp
-        jump_analisis.cpp
+        jump_analysis.cpp
         header.h
 )
 
 add_executable(anal
-        jump_analisis.cpp
+        jump_analysis.cpp
         header.h
 )
 
