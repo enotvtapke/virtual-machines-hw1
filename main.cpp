@@ -154,7 +154,7 @@ void analyze_jumps_for_line_size(const Table<int, size_t>& jump_table) {
 }
 
 int main() {
-    setup_affinity(12);
+    setup_affinity(0);
     constexpr int max_memory = 512 * 1024 * 1024;
     memory = (char *) mmap(nullptr, max_memory, PROT_READ | PROT_WRITE,MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
 
@@ -168,7 +168,7 @@ int main() {
 
             std::vector<std::vector<size_t>> jumps;
             for (int i = 0; i < times.index_column.size(); ++i) {
-                jumps.push_back(jumpIndices(times.data[i], 40, 1.3, 0.2, 40));
+                jumps.push_back(jumpIndices(times.data[i], 80, 1.3, 0.2, 80));
             }
             const Table jump_table(times.index_column, jumps);
             jump_table.print("./cache_line_size_jump_table.csv", false, false);
@@ -181,7 +181,7 @@ int main() {
 
             std::vector<std::vector<size_t>> jumps;
             for (int i = 0; i < times.index_column.size(); ++i) {
-                jumps.push_back(jumpIndices(times.data[i], 4, 1.3, 0.05, 48));
+                jumps.push_back(jumpIndices(times.data[i], 4, 1.3, 0.1, 48));
             }
             const Table jump_table(times.index_column, jumps);
             jump_table.print("./cache_assoc_jump_table.csv", false, false);
