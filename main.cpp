@@ -9,7 +9,7 @@
 
 #include "header.h"
 
-constexpr unsigned int REPEATS = 100'000;
+constexpr unsigned int REPEATS = 200'000;
 
 inline std::mt19937& get_random_engine() {
     static std::mt19937 engine(std::random_device{}());
@@ -158,7 +158,7 @@ int main() {
     constexpr int max_memory = 512 * 1024 * 1024;
     memory = (char *) mmap(nullptr, max_memory, PROT_READ | PROT_WRITE,MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
 
-    for (int i = 0; i < 24; ++i) {
+    for (int i = 0; i < 1; ++i) {
         {
             constexpr int max_spots = 2000;
 
