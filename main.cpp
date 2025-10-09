@@ -109,21 +109,34 @@ void setup_affinity(const int cpu_id) {
     }
 }
 
-void print_vector(const std::vector<size_t>& data) {
-    for (const auto d: data) {
-        printf("%lu ", d);
+template<typename T>
+void print_vector(const std::vector<T>& data) {
+    for (const auto& d : data) {
+        std::cout << d << " ";
     }
-    printf("\n");
+    std::cout << "\n";
+}
+
+template<typename T>
+void print_vector(const std::vector<std::vector<T>>& data) {
+    for (const auto& row : data) {
+        for (const auto& element : row) {
+            std::cout << element << " ";
+        }
+        std::cout << "\n";
+    }
 }
 
 void analyze_jumps_for_assoc(const Table<int, size_t>& data) {
     const std::vector<size_t> assocs = data.data.back();
     for (const auto assoc: assocs) {
-        for (int i = data.index_column.size() - 1; i >= 0; --i) {
-            if (std::ranges::all_of(data.data[i], [&](const size_t jump) { return jump != assoc; }) &&
-                std::ranges::any_of(data.data[i], [&](const size_t jump) { return similar(jump, assoc * 2); })) {
+        printf("Entity have assoc %lu\n", assoc);
+        for (int i = 0; i < data.index_column.size() - 1; ++i) {
+            if (std::ranges::all_of(data.data[i], [&](const size_t jump) { return !similar(jump, assoc, 0.26); }) &&
+                std::ranges::any_of(data.data[i], [&](const size_t jump) { return similar(jump, assoc * 2, 0.26); }) &&
+                std::ranges::any_of(data.data[i + 1], [&](const size_t jump) { return similar(jump, assoc, 0.26); })) {
                 printf("Entity with assoc %lu has entity stride %d Bytes and size %lu Bytes\n",
-                       assoc, data.index_column[i] * 2, assoc * 2 * data.index_column[i]);
+                       assoc, data.index_column[i + 1], assoc * data.index_column[i + 1]);
                 break;
             }
         }
@@ -135,40 +148,45 @@ void analyze_jumps_for_line_size(const Table<int, size_t>& jump_table) {
         if (!jump_table.data[i].empty() && !jump_table.data[i + 1].empty() && similar(jump_table.data[i][0], jump_table.data[i + 1][0], 0.4) &&
             !jump_table.data[i + 2].empty() && !jump_table.data[i + 3].empty() && static_cast<double>(jump_table.data[i + 3][0]) / jump_table.data[i + 2][0] > 1.7) {
             printf("Entity has line size %d\n", jump_table.index_column[i]);
-            }
+            break;
+        }
     }
 }
 
 int main() {
-    setup_affinity(0);
+    setup_affinity(12);
     constexpr int max_memory = 512 * 1024 * 1024;
     memory = (char *) mmap(nullptr, max_memory, PROT_READ | PROT_WRITE,MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
 
-    {
-        constexpr int max_spots = 200;
+    for (int i = 0; i < 24; ++i) {
+        {
+            constexpr int max_spots = 2000;
 
-        const auto times = cache_line_size_experiment(max_memory, max_spots, 32 * 1024);
-        times.print("./cache_line_size_table.csv");
+            const auto times = cache_line_size_experiment(max_memory, max_spots, 2 * 1024);
+            // const auto times = Table<int, double>::from_csv("./cache_line_size_table.csv");
+            times.print("./cache_line_size_table.csv", true, true);
 
-        std::vector<std::vector<size_t>> jumps;
-        for (int i = 0; i < times.index_column.size(); ++i) {
-            jumps.push_back(jumpIndices(times.data[i], 40, 1.3, 0.2, 40));
+            std::vector<std::vector<size_t>> jumps;
+            for (int i = 0; i < times.index_column.size(); ++i) {
+                jumps.push_back(jumpIndices(times.data[i], 40, 1.3, 0.2, 40));
+            }
+            const Table jump_table(times.index_column, jumps);
+            jump_table.print("./cache_line_size_jump_table.csv", false, false);
+            analyze_jumps_for_line_size(jump_table);
         }
-        const Table jump_table(times.index_column, jumps);
-        jump_table.print("./cache_line_size_jump_table.csv", false, false);
-        analyze_jumps_for_line_size(jump_table);
-    }
-    {
-        const auto times = cache_assoc_experiment(max_memory, 100, 1 * 1024 * 1024);
-        times.print("./cache_assoc_table.csv");
+        {
+            const auto times = cache_assoc_experiment(max_memory, 48, 1 * 1024 * 1024);
+            // const auto times = Table<int, double>::from_csv("./cache_assoc_table.csv");
+            times.print("./cache_assoc_table.csv", true, true);
 
-        std::vector<std::vector<size_t>> jumps;
-        for (int i = 0; i < times.index_column.size(); ++i) {
-            jumps.push_back(jumpIndices(times.data[i], 4, 1.3, 0.1, 2));
+            std::vector<std::vector<size_t>> jumps;
+            for (int i = 0; i < times.index_column.size(); ++i) {
+                jumps.push_back(jumpIndices(times.data[i], 4, 1.3, 0.05, 48));
+            }
+            const Table jump_table(times.index_column, jumps);
+            jump_table.print("./cache_assoc_jump_table.csv", false, false);
+            analyze_jumps_for_assoc(jump_table);
         }
-        const Table jump_table(times.index_column, jumps);
-        jump_table.print("./cache_assoc_jump_table.csv", false, false);
-        analyze_jumps_for_assoc(jump_table);
     }
     return 0;
 }

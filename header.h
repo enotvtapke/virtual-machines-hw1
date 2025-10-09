@@ -42,7 +42,7 @@ struct Table {
         fclose(file);
     }
 
-    static Table from_csv(const std::string &filename, bool skip_header = true) {
+    static Table from_csv(const std::string &filename, double scale = 0.01, bool skip_header = true) {
         Table table;
         std::ifstream file(filename);
 
@@ -82,7 +82,7 @@ struct Table {
                     first_column = false;
                 } else {
                     if constexpr (std::is_integral_v<DATA_T>) {
-                        row_data.push_back(static_cast<DATA_T>(std::stoll(token)));
+                        row_data.push_back(static_cast<DATA_T>(std::stoll(token)) * scale);
                     } else {
                         row_data.push_back(static_cast<DATA_T>(std::stod(token)));
                     }
