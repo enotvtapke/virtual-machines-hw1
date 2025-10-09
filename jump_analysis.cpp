@@ -64,9 +64,9 @@ std::vector<JumpCandidate> detectJumpCandidates(const std::vector<double>& data,
         const double std_dev_before = calculateStdDev(data, before_start, i, mean_before);
 
         const double mean_after = calculateMean(data, after_start, i + windowSize);
-        const double magnitude = std::abs(mean_after - mean_before);
+        const double magnitude = std::abs(mean_after - mean_before) / mean_before;
 
-        if (std_dev_before < mean_before * stdDivScale && std::max(mean_after, mean_before) / std::min(mean_after, mean_before) > jumpScale) {
+        if (std_dev_before < data[0] * stdDivScale && std::max(mean_after, mean_before) / std::min(mean_after, mean_before) > jumpScale) {
             candidates.push_back({i, magnitude});
         }
     }
@@ -114,6 +114,11 @@ std::vector<JumpCandidate> filterAndSelectBestJumps(const std::vector<JumpCandid
 
 std::vector<size_t> jumpIndices(const std::vector<double> &data, const int windowSize, const double jumpScale, const double stdDivScale, const int minSeparation) {
     const auto allCandidates = detectJumpCandidates(data, windowSize, jumpScale, stdDivScale);
+    // for (const auto& d : allCandidates) {
+    //     std::cout << d.index << " ";
+    // }
+    // std::cout << "\n";
+
     const auto finalJumps = filterAndSelectBestJumps(allCandidates, minSeparation);
     std::vector<size_t> indices;
     for (auto&[index, _]: finalJumps) {

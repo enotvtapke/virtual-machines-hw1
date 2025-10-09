@@ -21,3 +21,16 @@ Entity with assoc 8 has entity stride 4096 Bytes and size 32768 Bytes
 
 Иногда по неизвестным причинам в результатах измерений встречаются выбросы, тогда результат работы программы может быть неверным.
 Бороться с этим помогает запуск программы несколько раз и фиксирование тактовой частоты ядер процессора.
+
+---
+
+To check CPU frequency:
+`watch -n 1 "grep \"^[c]pu MHz\" /proc/cpuinfo"`
+
+To set CPU frequency:
+`sudo cpupower frequency-set --min 4GHz --max 4GHz`
+
+To determine real cache parameters:
+* `cat /sys/devices/system/cpu/cpu12/cache/index0/size`
+* `cat /sys/devices/system/cpu/cpu12/cache/index0/coherency_line_size`
+* `cat /sys/devices/system/cpu/cpu12/cache/index0/ways_of_associativity`

@@ -181,7 +181,7 @@ int main() {
 
             std::vector<std::vector<size_t>> jumps;
             for (int i = 0; i < times.index_column.size(); ++i) {
-                jumps.push_back(jumpIndices(times.data[i], 4, 1.3, 0.1, 48));
+                jumps.push_back(jumpIndices(times.data[i], 4, 1.3, 0.2, 48));
             }
             const Table jump_table(times.index_column, jumps);
             jump_table.print("./cache_assoc_jump_table.csv", false, false);
