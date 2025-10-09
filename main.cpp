@@ -47,35 +47,6 @@ double time(const int stride, const int spots_num) {
     return static_cast<double>((end_time - start_time).count()) / REPEATS;
 }
 
-template <typename INDEX_T, typename DATA_T>
-struct Table {
-    std::vector<INDEX_T> index_column;
-    std::vector<std::vector<DATA_T>> data;
-
-    [[nodiscard]] std::vector<DATA_T> row_by_index(const INDEX_T index) const {
-        for (int i = 0; i < index_column.size(); ++i) {
-            if (index_column[i] == index) {
-                return data[i];
-            }
-        }
-        throw std::runtime_error("Index not found");
-    }
-
-    void print(FILE * file = stdout, const bool is_time = true) const {
-        for (int i =0; i < index_column.size(); ++i) {
-            fprintf(file, "%-13d", index_column[i]);
-            for (const double time: data[i]) {
-                if (is_time) {
-                    fprintf(file, ",%-2.0f ", time * 100);
-                } else {
-                    fprintf(file, ",%-2.0f ", time);
-                }
-            }
-            fprintf(file, "\n");
-        }
-    }
-};
-
 Table<int, double> cache_assoc_experiment(const int max_memory, const int max_assoc, const int max_stride) {
     std::vector<std::vector<double>> times{};
     std::vector<int> strides{};
@@ -159,15 +130,6 @@ void analyze_jumps_for_assoc(const Table<int, size_t>& data) {
     }
 }
 
-
-void print_header(int size, FILE *file = stdout) {
-    fprintf(file, "%-13s", "stride\\spots");
-    for (int i = 1; i <= size; ++i) {
-        fprintf(file, ",%-3d", i);
-    }
-    fprintf(file, "\n");
-}
-
 void analyze_jumps_for_line_size(const Table<int, size_t>& jump_table) {
     for (int i = 0; i < jump_table.index_column.size() - 3; i += 2) {
         if (!jump_table.data[i].empty() && !jump_table.data[i + 1].empty() && similar(jump_table.data[i][0], jump_table.data[i + 1][0], 0.4) &&
@@ -182,41 +144,30 @@ int main() {
     constexpr int max_memory = 512 * 1024 * 1024;
     memory = (char *) mmap(nullptr, max_memory, PROT_READ | PROT_WRITE,MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
 
-
     {
-        constexpr int max_spots = 2000;
+        constexpr int max_spots = 200;
 
         const auto times = cache_line_size_experiment(max_memory, max_spots, 32 * 1024);
-        auto file = fopen("./cache_line_size_table.csv", "w");
-        print_header(max_spots, file);
-        times.print(file);
-        fclose(file);
+        times.print("./cache_line_size_table.csv");
 
         std::vector<std::vector<size_t>> jumps;
         for (int i = 0; i < times.index_column.size(); ++i) {
             jumps.push_back(jumpIndices(times.data[i], 40, 1.3, 0.2, 40));
         }
         const Table jump_table(times.index_column, jumps);
-        file = fopen("./cache_line_size_jump_table.csv", "w");
-        jump_table.print(file, false);
-        fclose(file);
+        jump_table.print("./cache_line_size_jump_table.csv", false, false);
         analyze_jumps_for_line_size(jump_table);
     }
     {
         const auto times = cache_assoc_experiment(max_memory, 100, 1 * 1024 * 1024);
-        auto file = fopen("./cache_assoc_table.csv", "w");
-        print_header(100, file);
-        times.print(file);
-        fclose(file);
+        times.print("./cache_assoc_table.csv");
 
         std::vector<std::vector<size_t>> jumps;
         for (int i = 0; i < times.index_column.size(); ++i) {
-            jumps.push_back(jumpIndices(times.data[i], 4, 1.3, 0.1, 4));
+            jumps.push_back(jumpIndices(times.data[i], 4, 1.3, 0.1, 2));
         }
         const Table jump_table(times.index_column, jumps);
-        file = fopen("./cache_assoc_jump_table.csv", "w");
-        jump_table.print(file, false);
-        fclose(file);
+        jump_table.print("./cache_assoc_jump_table.csv", false, false);
         analyze_jumps_for_assoc(jump_table);
     }
     return 0;
