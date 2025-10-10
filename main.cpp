@@ -33,6 +33,9 @@ double time(const int stride, const int spots_num) {
     for (unsigned int i = 0; i < REPEATS; ++i) {
         current = * (void **) current;
     }
+    if (current == (void *) 256) {
+        std::cout << "Impossible!" << std::endl;
+    }
 
     current = (void *) memory;
     const auto start_time = std::chrono::high_resolution_clock::now();
